@@ -1,16 +1,14 @@
 import { Request, Response } from "express";
 import { apiResponse } from "../../utils/apiResponse";
 import { SessionService } from "./session.service";
+import { UnauthorizedException } from "../../utils/errors";
 
 export class SessionController {
   constructor(private readonly sessionService: SessionService) {}
 
-  private getUserId = (req: Request): string => {
-    return ((req as any).user as { id: string }).id;
-  };
-
   findAll = async (req: Request, res: Response) => {
-    const sessions = await this.sessionService.findAll(this.getUserId(req));
+    if (!req.user?.id) throw new UnauthorizedException();
+    const sessions = await this.sessionService.findAll(req.user.id);
     return apiResponse(res, {
       status: 200,
       data: sessions,

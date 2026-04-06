@@ -48,8 +48,9 @@ PATCH {{BASE_URL}}/api/users/change-password
 Content-Type: application/json
 
 {
-  "oldPassword": "123456789",    
-  "newPassword": "newStrongPass" 
+  "oldPassword": "12345678",    
+  "newPassword": "newStrongPass1",
+  "confirmPassword": "newStrongPass1"
 }
 
 

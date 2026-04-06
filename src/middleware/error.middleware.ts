@@ -3,11 +3,10 @@ import { ZodError, ZodIssue } from "zod";
 import { apiResponse } from "../utils/apiResponse";
 import { ERROR_CODES } from "../constants";
 import { HttpException } from "../utils/errors";
-import { env } from "../config/env";
 
 const formatZodError = (issues: ZodIssue[]) => {
   return issues.map((issue) => ({
-    field: issue.path[0],
+    field: issue.path.join("."),
     message: issue.message,
   }));
 };
@@ -21,7 +20,6 @@ export const errorMiddleware = (
   res: Response,
   next: NextFunction,
 ) => {
-  console.log(err);
   // ✅ Zod validation error
   if (err instanceof ZodError) {
     return apiResponse(res, {
@@ -35,19 +33,24 @@ export const errorMiddleware = (
     });
   }
 
-  // ✅ Custom HTTP exceptions
+  // Custom HTTP exceptions
   if (err instanceof HttpException) {
     return apiResponse(res, err.toResponse());
   }
 
-  // ✅ Fallback (unknown error)
+  // Fallback (unknown error) — safe serialization to prevent circular reference crash
   apiResponse(res, {
     success: false,
     status: 500,
     message: "Something went wrong",
     error: {
       code: ERROR_CODES.INTERNAL_SERVER_ERROR,
-      details: env.NODE_ENV === "development" ? err : undefined,
+      details:
+        process.env.NODE_ENV === "development"
+          ? err instanceof Error
+            ? { message: err.message, stack: err.stack }
+            : String(err)
+          : undefined,
     },
   });
 };

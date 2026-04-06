@@ -10,16 +10,14 @@ export function authMiddleware(
   const token = req.cookies?.["accessToken"];
 
   if (!token) {
-    throw new UnauthorizedException(`Missing access token`);
+    throw new UnauthorizedException("Missing access token");
   }
 
   try {
-    const payload = verifyJwt(token) as { sub: string };
-    (req as any).user = {
-      id: payload.sub,
-    };
+    const payload = verifyJwt(token);
+    req.user = { id: payload.sub };
     next();
   } catch {
-    throw new UnauthorizedException(`Invalid access token`);
+    throw new UnauthorizedException("Invalid access token");
   }
 }

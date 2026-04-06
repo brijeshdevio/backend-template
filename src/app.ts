@@ -2,12 +2,14 @@ import express from "express";
 import cors from "cors";
 import cookieParser from "cookie-parser";
 import helmet from "helmet";
+import { randomUUID } from "node:crypto";
 import { env } from "./config/env";
 import { apiResponse } from "./utils/apiResponse";
 import { ERROR_CODES } from "./constants";
 import { errorMiddleware } from "./middleware/error.middleware";
 import { routes } from "./routes";
 import { createRateLimiter } from "./middleware/rateLimite.middleware";
+import { prisma } from "./lib/prisma";
 
 const app = express();
 
@@ -18,8 +20,8 @@ app.use(
   }),
 );
 app.use(helmet());
-app.use(express.json({ limit: "10kb" }));
-app.use(express.urlencoded({ extended: true }));
+app.use(express.json({ limit: "16kb" }));
+app.use(express.urlencoded({ extended: true, limit: "16kb" }));
 app.use(cookieParser());
 app.set("trust proxy", 1);
 app.use(
@@ -29,23 +31,34 @@ app.use(
   }),
 );
 
-app.get("/", (req, res) => {
-  res.send("Welcome to the Backend Template");
+// Attach a unique request ID for tracing
+app.use((req, _res, next) => {
+  req.id = (req.headers["x-request-id"] as string) || randomUUID();
+  next();
 });
 
-app.get("/health", (_, res) => {
-  res.send("OK");
+app.get("/", (_req, res) => {
+  res.json({ status: "ok", name: "backend-template" });
+});
+
+app.get("/health", async (_req, res) => {
+  try {
+    await prisma.$queryRaw`SELECT 1`;
+    res.json({ status: "ok", db: "connected" });
+  } catch {
+    res.status(503).json({ status: "error", db: "disconnected" });
+  }
 });
 
 app.use("/api", routes);
 
-app.use("", (_, res) => {
+app.use("", (_req, res) => {
   return apiResponse(res, {
     status: 404,
     message: "Not Found",
     error: {
       code: ERROR_CODES.NOT_FOUND,
-      details: `Please check the route name and method.`,
+      details: "Please check the route name and method.",
     },
   });
 });

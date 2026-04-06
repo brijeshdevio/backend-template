@@ -3,10 +3,11 @@ import { prisma } from "../../lib/prisma";
 export class SessionService {
   constructor() {}
 
-  async findAll(id: string) {
-    const sessions = await prisma.session.findMany({
+  async findAll(userId: string) {
+    return prisma.session.findMany({
       where: {
-        userId: id,
+        userId,
+        expiresAt: { gt: new Date() },
       },
       select: {
         id: true,
@@ -17,7 +18,7 @@ export class SessionService {
         expiresAt: true,
         createdAt: true,
       },
+      orderBy: { createdAt: "desc" },
     });
-    return sessions;
   }
 }

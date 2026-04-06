@@ -1,5 +1,6 @@
 import { PrismaClientKnownRequestError } from "@prisma/client/runtime/client";
 import { DUMMY_HASH, PRISMA_CODES } from "../../constants";
+import { TOKEN_EXPIRY } from "../../constants/auth";
 import { hashPassword, verifyPassword } from "../../lib/argon";
 import { hashString, randomString } from "../../lib/crypto";
 import { signJwt } from "../../lib/jwt";
@@ -7,6 +8,7 @@ import { prisma } from "../../lib/prisma";
 import {
   ConflictException,
   ForbiddenException,
+  HttpException,
   InternalServerErrorException,
 } from "../../utils/errors";
 import { LoginDto, RegisterDto } from "./auth.schema";
@@ -26,12 +28,12 @@ export class AuthService {
     await prisma.session.create({
       data: {
         userId,
-        expiresAt: this.calculateExpiry(7 * 24 * 60 * 60 * 1000),
+        expiresAt: this.calculateExpiry(TOKEN_EXPIRY.SESSION_MS),
         ...deviceInfo,
         refreshToken: {
           create: {
             tokenHash,
-            expiresAt: this.calculateExpiry(24 * 60 * 60 * 1000),
+            expiresAt: this.calculateExpiry(TOKEN_EXPIRY.REFRESH_TOKEN_MS),
           },
         },
       },
@@ -45,7 +47,7 @@ export class AuthService {
     await prisma.refreshToken.create({
       data: {
         tokenHash,
-        expiresAt: this.calculateExpiry(24 * 60 * 60 * 1000),
+        expiresAt: this.calculateExpiry(TOKEN_EXPIRY.REFRESH_TOKEN_MS),
         sessionId,
       },
     });
@@ -115,13 +117,13 @@ export class AuthService {
         where: { id: refreshToken.sessionId },
       });
     } catch (error) {
+      if (error instanceof HttpException) throw error;
       if (
         error instanceof PrismaClientKnownRequestError &&
         error.code === PRISMA_CODES.NOT_FOUND
       ) {
         throw new ForbiddenException("Invalid or expired token");
       }
-
       throw new InternalServerErrorException();
     }
   }
@@ -150,13 +152,13 @@ export class AuthService {
         refreshToken: newRefreshToken,
       };
     } catch (error) {
+      if (error instanceof HttpException) throw error;
       if (
         error instanceof PrismaClientKnownRequestError &&
         error.code === PRISMA_CODES.NOT_FOUND
       ) {
         throw new ForbiddenException("Invalid or expired token");
       }
-
       throw new InternalServerErrorException();
     }
   }

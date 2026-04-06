@@ -5,6 +5,8 @@ import { apiResponse } from "../../utils/apiResponse";
 import { DeviceInfo } from "./auth.types";
 import { getIpAddress } from "../../utils/ipAddress";
 import { clearCookie, setCookie } from "../../utils/cookie";
+import { TOKEN_EXPIRY } from "../../constants/auth";
+import { UnauthorizedException } from "../../utils/errors";
 
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
@@ -48,10 +50,10 @@ export class AuthController {
       this.deviceInfo(req),
     );
     setCookie(res, "accessToken", tokens.accessToken, {
-      maxAge: 1000 * 60 * 15,
+      maxAge: TOKEN_EXPIRY.ACCESS_TOKEN_MS,
     });
     setCookie(res, "refreshToken", tokens.refreshToken, {
-      maxAge: 1000 * 60 * 60 * 24,
+      maxAge: TOKEN_EXPIRY.REFRESH_TOKEN_MS,
     });
 
     return apiResponse(res, {
@@ -61,8 +63,10 @@ export class AuthController {
   };
 
   logout = async (req: Request, res: Response) => {
-    const { refreshToken } = req.body;
-    await this.authService.logout(refreshToken);
+    if (!req.refreshToken) {
+      throw new UnauthorizedException("Missing refresh token");
+    }
+    await this.authService.logout(req.refreshToken);
     clearCookie(res, "accessToken");
     clearCookie(res, "refreshToken");
     return apiResponse(res, {
@@ -72,13 +76,15 @@ export class AuthController {
   };
 
   refresh = async (req: Request, res: Response) => {
-    const { refreshToken } = req.body;
-    const tokens = await this.authService.refresh(refreshToken);
+    if (!req.refreshToken) {
+      throw new UnauthorizedException("Missing refresh token");
+    }
+    const tokens = await this.authService.refresh(req.refreshToken);
     setCookie(res, "accessToken", tokens.accessToken, {
-      maxAge: 1000 * 60 * 15,
+      maxAge: TOKEN_EXPIRY.ACCESS_TOKEN_MS,
     });
     setCookie(res, "refreshToken", tokens.refreshToken, {
-      maxAge: 1000 * 60 * 60 * 24,
+      maxAge: TOKEN_EXPIRY.REFRESH_TOKEN_MS,
     });
     return apiResponse(res, {
       status: 200,

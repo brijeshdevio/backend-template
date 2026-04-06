@@ -2,5 +2,5 @@ import { PrismaPg } from "@prisma/adapter-pg";
 import { PrismaClient } from "../generated/prisma/client";
 import { env } from "../config/env";
 
-const pool = new PrismaPg({ connectionString: env.DATABASE_URL });
-export const prisma = new PrismaClient({ adapter: pool });
+const adapter = new PrismaPg({ connectionString: env.DATABASE_URL, max: 5 });
+export const prisma = new PrismaClient({ adapter });

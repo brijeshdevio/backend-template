@@ -1,7 +1,12 @@
-import { DUMMY_HASH } from "../../constants";
+import { PrismaClientKnownRequestError } from "@prisma/client/runtime/client";
+import { DUMMY_HASH, PRISMA_CODES } from "../../constants";
 import { hashPassword, verifyPassword } from "../../lib/argon";
 import { prisma } from "../../lib/prisma";
-import { ForbiddenException, UnauthorizedException } from "../../utils/errors";
+import {
+  ForbiddenException,
+  NotFoundException,
+  UnauthorizedException,
+} from "../../utils/errors";
 import { ChangePasswordDto, UpdateDto } from "./user.schema";
 
 export class UserService {
@@ -17,25 +22,33 @@ export class UserService {
         createdAt: true,
       },
     });
-    if (user) return user;
 
-    throw new UnauthorizedException();
+    if (!user) {
+      throw new NotFoundException("User not found");
+    }
+
+    return user;
   }
 
   async update(id: string, data: UpdateDto) {
-    const user = await prisma.user.update({
-      where: { id },
-      data: {
-        name: data.name,
-      },
-      select: {
-        id: true,
-        name: true,
-      },
-    });
-    if (user) return user;
-
-    throw new UnauthorizedException();
+    try {
+      return await prisma.user.update({
+        where: { id },
+        data: { name: data.name },
+        select: {
+          id: true,
+          name: true,
+        },
+      });
+    } catch (error) {
+      if (
+        error instanceof PrismaClientKnownRequestError &&
+        error.code === PRISMA_CODES.NOT_FOUND
+      ) {
+        throw new NotFoundException("User not found");
+      }
+      throw error;
+    }
   }
 
   async changePassword(id: string, data: ChangePasswordDto) {
@@ -44,10 +57,10 @@ export class UserService {
     });
 
     if (!user) {
-      throw new ForbiddenException("You are not logged in.");
+      throw new UnauthorizedException("User not found");
     }
 
-    const passwordHash = user?.passwordHash ?? DUMMY_HASH;
+    const passwordHash = user.passwordHash ?? DUMMY_HASH;
     const isPasswordValid = await verifyPassword(
       passwordHash,
       data.oldPassword,
@@ -63,5 +76,8 @@ export class UserService {
         passwordHash: await hashPassword(data.newPassword),
       },
     });
+
+    // Invalidate all existing sessions after password change
+    await prisma.session.deleteMany({ where: { userId: id } });
   }
 }

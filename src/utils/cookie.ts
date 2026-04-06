@@ -1,6 +1,12 @@
 import { CookieOptions, Response } from "express";
 import { env } from "../config/env";
 
+const baseCookieOptions = (): CookieOptions => ({
+  httpOnly: true,
+  secure: env.NODE_ENV === "production",
+  sameSite: env.NODE_ENV === "production" ? "none" : "lax",
+});
+
 export const setCookie = (
   res: Response,
   name: string,
@@ -8,17 +14,11 @@ export const setCookie = (
   options: CookieOptions,
 ) => {
   res.cookie(name, value, {
-    httpOnly: true,
-    secure: env.NODE_ENV === "production",
-    sameSite: env.NODE_ENV === "production" ? "none" : "lax",
+    ...baseCookieOptions(),
     ...options,
   });
 };
 
 export const clearCookie = (res: Response, name: string) => {
-  res.clearCookie(name, {
-    httpOnly: true,
-    secure: env.NODE_ENV === "production",
-    sameSite: env.NODE_ENV === "production" ? "none" : "lax",
-  });
+  res.clearCookie(name, baseCookieOptions());
 };

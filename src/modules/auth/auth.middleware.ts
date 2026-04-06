@@ -9,12 +9,9 @@ export function refreshTokenMiddleware(
   const token = req.cookies?.["refreshToken"];
 
   if (!token) {
-    throw new UnauthorizedException(`Missing refresh token`);
+    throw new UnauthorizedException("Missing refresh token");
   }
-  req.body = {
-    ...req.body,
-    refreshToken: token,
-  };
 
+  req.refreshToken = token;
   next();
 }

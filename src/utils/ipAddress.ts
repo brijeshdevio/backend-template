@@ -1,8 +1,10 @@
 import { Request } from "express";
 
-export const getIpAddress = (req: Request): string => {
-  return ((req.headers["x-forwarded-for"] as string)?.split(",")[0] ||
-    req.headers["x-real-ip"] ||
+export const getIpAddress = (req: Request): string | undefined => {
+  return (
+    (req.headers["x-forwarded-for"] as string)?.split(",")[0]?.trim() ||
+    (req.headers["x-real-ip"] as string) ||
     req.socket?.remoteAddress ||
-    null) as string;
+    undefined
+  );
 };
