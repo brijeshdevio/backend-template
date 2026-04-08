@@ -8,7 +8,6 @@ import { prisma } from "../../lib/prisma";
 import {
   ConflictException,
   ForbiddenException,
-  HttpException,
   InternalServerErrorException,
 } from "../../utils/errors";
 import { LoginDto, RegisterDto } from "./auth.schema";
@@ -101,31 +100,20 @@ export class AuthService {
   }
 
   async logout(token: string) {
-    try {
-      const tokenHash = hashString(token);
-      const refreshToken = await prisma.refreshToken.delete({
-        where: { tokenHash, expiresAt: { gt: new Date() } },
-        include: {
-          session: true,
-        },
-      });
-      if (!refreshToken) {
-        throw new ForbiddenException("Invalid or expired token");
-      }
+    const tokenHash = hashString(token);
 
-      await prisma.session.delete({
-        where: { id: refreshToken.sessionId },
-      });
-    } catch (error) {
-      if (error instanceof HttpException) throw error;
-      if (
-        error instanceof PrismaClientKnownRequestError &&
-        error.code === PRISMA_CODES.NOT_FOUND
-      ) {
-        throw new ForbiddenException("Invalid or expired token");
-      }
-      throw new InternalServerErrorException();
+    const refreshToken = await prisma.refreshToken.findUnique({
+      where: { tokenHash },
+    });
+
+    if (!refreshToken || refreshToken.expiresAt <= new Date()) {
+      throw new ForbiddenException("Invalid or expired token");
     }
+
+    // Deleting the session cascades to delete the refresh token
+    await prisma.session.delete({
+      where: { id: refreshToken.sessionId },
+    });
   }
 
   async refresh(token: string) {
