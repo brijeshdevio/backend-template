@@ -11,6 +11,9 @@ export const TOKEN_EXPIRY = {
   SESSION_MS: 7 * 24 * 60 * 60 * 1000,
 } as const;
 
+/** Maximum number of concurrent active sessions per user */
+export const MAX_SESSIONS_PER_USER = 5;
+
 /** Shared password validation schema — use in all password fields for consistency */
 export const passwordSchema = z
   .string()

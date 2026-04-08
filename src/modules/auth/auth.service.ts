@@ -1,6 +1,6 @@
 import { PrismaClientKnownRequestError } from "@prisma/client/runtime/client";
 import { DUMMY_HASH, PRISMA_CODES } from "../../constants";
-import { TOKEN_EXPIRY } from "../../constants/auth";
+import { MAX_SESSIONS_PER_USER, TOKEN_EXPIRY } from "../../constants/auth";
 import { hashPassword, verifyPassword } from "../../lib/argon";
 import { hashString, randomString } from "../../lib/crypto";
 import { signJwt } from "../../lib/jwt";
@@ -91,6 +91,21 @@ export class AuthService {
 
     if (!user || !isPasswordValid) {
       throw new ForbiddenException("Invalid credentials");
+    }
+
+    // Evict the oldest session if the user has reached the limit
+    const activeSessions = await prisma.session.count({
+      where: { userId: user.id, expiresAt: { gt: new Date() } },
+    });
+
+    if (activeSessions >= MAX_SESSIONS_PER_USER) {
+      const oldest = await prisma.session.findFirst({
+        where: { userId: user.id },
+        orderBy: { createdAt: "asc" },
+      });
+      if (oldest) {
+        await prisma.session.delete({ where: { id: oldest.id } });
+      }
     }
 
     const refreshToken = await this.createSession(user.id, deviceInfo);
