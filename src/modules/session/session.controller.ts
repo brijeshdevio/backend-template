@@ -18,7 +18,7 @@ export class SessionController {
 
   deleteOne = async (req: Request, res: Response) => {
     if (!req.user?.id) throw new UnauthorizedException();
-    const { id } = req.params;
+    const id = req.params?.id as string;
     const { remaining } = await this.sessionService.deleteOne(id, req.user.id);
 
     // If no sessions remain, clear auth cookies (auto-logout)
