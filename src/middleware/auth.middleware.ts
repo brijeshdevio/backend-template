@@ -7,7 +7,10 @@ export function authMiddleware(
   res: Response,
   next: NextFunction,
 ) {
-  const token = req.cookies?.["accessToken"];
+  // Prefer cookie, fall back to Authorization: Bearer header
+  const token =
+    req.cookies?.["accessToken"] ||
+    req.headers.authorization?.replace("Bearer ", "");
 
   if (!token) {
     throw new UnauthorizedException("Missing access token");
