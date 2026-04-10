@@ -6,3 +6,5 @@ export const sessionRouter = Router();
 const sessionController = new SessionController(new SessionService());
 
 sessionRouter.get("/", sessionController.findAll);
+sessionRouter.delete("/", sessionController.deleteAll);
+sessionRouter.delete("/:id", sessionController.deleteOne);
