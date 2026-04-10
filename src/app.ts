@@ -10,6 +10,7 @@ import { errorMiddleware } from "./middleware/error.middleware";
 import { routes } from "./routes";
 import { createRateLimiter } from "./middleware/rateLimiter.middleware";
 import { prisma } from "./lib/prisma";
+import { logger } from "./lib/logger";
 
 const app = express();
 
@@ -34,6 +35,25 @@ app.use(
 // Attach a unique request ID for tracing
 app.use((req, _res, next) => {
   req.id = (req.headers["x-request-id"] as string) || randomUUID();
+  next();
+});
+
+// Request/response logging
+app.use((req, res, next) => {
+  const start = Date.now();
+  res.on("finish", () => {
+    const duration = Date.now() - start;
+    logger.info(
+      {
+        requestId: req.id,
+        method: req.method,
+        url: req.originalUrl,
+        status: res.statusCode,
+        duration: `${duration}ms`,
+      },
+      "request completed",
+    );
+  });
   next();
 });
 

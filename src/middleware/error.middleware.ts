@@ -3,6 +3,7 @@ import { ZodError, ZodIssue } from "zod";
 import { apiResponse } from "../utils/apiResponse";
 import { ERROR_CODES } from "../constants";
 import { HttpException } from "../utils/errors";
+import { logger } from "../lib/logger";
 
 const formatZodError = (issues: ZodIssue[]) => {
   return issues.map((issue) => ({
@@ -38,7 +39,12 @@ export const errorMiddleware = (
     return apiResponse(res, err.toResponse());
   }
 
-  // Fallback (unknown error) — safe serialization to prevent circular reference crash
+  // Fallback (unknown error) — log and return generic message
+  logger.error(
+    { err, requestId: req.id, method: req.method, url: req.originalUrl },
+    "Unhandled error",
+  );
+
   apiResponse(res, {
     success: false,
     status: 500,
@@ -54,3 +60,4 @@ export const errorMiddleware = (
     },
   });
 };
+
