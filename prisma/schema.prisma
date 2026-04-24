@@ -15,6 +15,7 @@ model User {
   passwordHash String
 
   sessions Session[]
+  role     Role      @default(user)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -55,6 +56,11 @@ model RefreshToken {
 
   @@index([tokenHash])
   @@index([expiresAt])
+}
+
+enum Role {
+  user
+  admin
 }
 
 enum DeviceType {
