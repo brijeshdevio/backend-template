@@ -22,4 +22,34 @@ export class UsersController {
       meta,
     });
   };
+
+  findOne = async (req: Request, res: Response) => {
+    const user = req.user;
+    if (!user) throw new UnauthorizedException();
+    const userId = req.params.id as string;
+
+    const data = await this.usersService.findOne(userId);
+
+    apiResponse(res, { data });
+  };
+
+  updateOne = async (req: Request, res: Response) => {
+    const user = req.user;
+    if (!user) throw new UnauthorizedException();
+    const userId = req.params.id as string;
+
+    const data = await this.usersService.updateOne(userId, user.role, req.body);
+
+    apiResponse(res, { data, message: "User updated successfully" });
+  };
+
+  deleteOne = async (req: Request, res: Response) => {
+    const user = req.user;
+    if (!user) throw new UnauthorizedException();
+    const userId = req.params.id as string;
+
+    await this.usersService.deleteOne(userId);
+
+    apiResponse(res, { message: "User deleted successfully" });
+  };
 }

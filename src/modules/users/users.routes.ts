@@ -14,3 +14,6 @@ userRoutes.get(
   validate(findUsersQuerySchema, "query"),
   controllers.findAllUsers,
 );
+userRoutes.get("/:id", controllers.findOne);
+userRoutes.put("/:id", roleGuard(["admin", "user"]), controllers.updateOne);
+userRoutes.delete("/:id", roleGuard(["admin"]), controllers.deleteOne);
