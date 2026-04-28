@@ -297,7 +297,7 @@ Current models: `User` (with `USER` / `ADMIN` roles)
 
 This starter is intentionally minimal. Extend it based on your project needs:
 
-- [ ] Refresh token rotation
+- ✅ Refresh token rotation
 - [ ] Email verification
 - [ ] File uploads (Multer / S3)
 - [ ] Redis caching
